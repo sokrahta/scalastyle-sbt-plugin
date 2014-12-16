@@ -29,36 +29,20 @@ import org.scalastyle.ScalastyleChecker
 import org.scalastyle.ScalastyleConfiguration
 import org.scalastyle.Output
 import org.scalastyle.XmlOutput
-import sbt.Configuration
-import sbt.Compile
-import sbt.Test
+import sbt._
 import sbt.ConfigKey.configurationToKey
-import sbt.File
-import sbt.IO
-import sbt.inputKey
 import sbt.Keys.scalaSource
 import sbt.Keys.streams
 import sbt.Keys.target
-import sbt.Logger
-import sbt.Plugin
-import sbt.Process
-import sbt.Project
 import sbt.Scoped.t3ToTable3
 import sbt.Scoped.t6ToTable6
-import sbt.settingKey
-import sbt.taskKey
-import sbt.file
-import sbt.inputTask
-import sbt.richFile
 import sbt.std.TaskStreams
-import sbt.url
-import sbt.ScopedKey
 import com.typesafe.config.ConfigFactory
 import com.typesafe.config.Config
 import scala.language.implicitConversions
 import java.net.URL
 
-object ScalastylePlugin extends Plugin {
+object ScalastylePlugin extends AutoPlugin {
   import sbt.complete.DefaultParsers._
 
   val scalastyle = inputKey[Unit]("Run scalastyle on your code")
@@ -71,7 +55,7 @@ object ScalastylePlugin extends Plugin {
   val scalastyleConfigRefreshHours = settingKey[Integer]("How many hours until next run will fetch the scalastyle-config.xml again if location is a URI.")
   val scalastyleConfigUrlCacheFile = settingKey[String]("If scalastyleConfigUrl is set, it will be cached here")
 
-  def rawScalastyleSettings(): Seq[sbt.Def.Setting[_]] =
+  override def projectSettings: Seq[Def.Setting[_]] =
     Seq(
       scalastyle := {
         val args: Seq[String] = spaceDelimited("<arg>").parsed
@@ -91,11 +75,7 @@ object ScalastylePlugin extends Plugin {
         val streamsValue = streams.value
         val configValue = scalastyleConfig.value
         Tasks.doGenerateConfig(configValue, streamsValue)
-      }
-    )
-
-  override def projectSettings =
-    Seq(
+      },
       scalastyleConfig := file("scalastyle-config.xml"),
       (scalastyleConfig in Test) := (scalastyleConfig in scalastyle).value,
       scalastyleConfigUrl := None,
@@ -108,9 +88,7 @@ object ScalastylePlugin extends Plugin {
       (scalastyleTarget in Test) := target.value / "scalastyle-test-result.xml",
       scalastyleFailOnError := true,
       (scalastyleFailOnError in Test) := (scalastyleFailOnError in scalastyle).value
-    ) ++
-    Project.inConfig(Compile)(rawScalastyleSettings()) ++
-    Project.inConfig(Test)(rawScalastyleSettings())
+    )
 }
 
 object Tasks {
